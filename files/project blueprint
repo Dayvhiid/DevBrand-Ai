@@ -1,0 +1,44 @@
+Project Blueprint: DevBrand AI
+
+"The Automated Proof-of-Work Engine for Developers"
+I. Summary
+DevBrand AI is a professional branding automation tool designed specifically for software engineers. It bridges the gap between a developer’s daily coding activity (GitHub) and their professional visibility (LinkedIn). By using a "Narrative Engine," the platform converts raw code commits into high-engagement social proof, helping developers stay "relevant" to recruiters without spending hours on social media.
+
+II. The Problem Space
+
+• Visibility Decay: A developer’s LinkedIn profile often becomes a "static resume" that doesn't reflect their current, evolving skill set.
+• The Content Tax: Writing about code is a different skill than writing code. Most developers suffer from "blank page syndrome" when trying to post updates.
+• Recruiter Psychology: Recruiters value consistency and "proof of work." A profile that shows weekly technical growth is significantly more likely to get a DM than a profile that hasn't been updated in six months.
+
+III. Product Solution: The Narrative Engine
+
+The core technology is a three-stage pipeline that ensures quality over quantity:
+1. Ingestion: Daily/Weekly polling of GitHub Public Repositories.
+
+2.The Impact Filter: An AI-driven classifier that ignores "noise" (typos, chores) and identifies "signal" (features, architecture, logic).
+
+3.The "Ghostwriter" UI: Instead of auto-posting (which feels like spam), the app presents the user with curated "Daily Drafts." The user can edit, approve, or discard with one click.
+
+IV. Technical Roadmap & Scalability
+
+• Phase 1 (MVP): GitHub API integration + LinkedIn API integration. Focused on text-based posts from public repositories commit messages.
+• Phase 2 (Diffs): The system can read git diff charts and create posts based on what the user has changed in a case where the commit messages aren’t “good” enough for a post (or just in general)
+• Phase 3 (Visuals): Integration with README assets. The AI detects new screenshots in the images/ folder of a repo and attaches them to the social post. If images do not exist in the README, an AI image would be generated in it’s place??
+• Phase 4 (Multipost): The app would be able to post to multiple social media accounts instead of just LinkedIn.
+• Phase 5 (Enterprise/B2B): A "Team Mode" for engineering managers to showcase the "velocity" of their department on the company's LinkedIn page. (still under consideration)
+• Scalability: The business scales through a Freemium model. Free users get 1 "Post-Worthiness" check a week; Pro users get daily analysis and "Voice Training" (teaching the AI to write exactly like them).
+
+V. Competitive Landscape
+While social media schedulers and AI writers exist, DevBrand AI is unique in its Deep Source Integration. By "reading" the code (the Diffs), the AI can provide a level of technical accuracy that a general-purpose AI (like ChatGPT) cannot achieve without manual input.
+
+VI. Critical Success Factors
+• Authenticity: The AI must avoid "AI-isms" (e.g., "In today's fast-paced tech landscape..."). It must sound like a human developer.
+• Security: Users must trust the app with GitHub/LinkedIn tokens. SOC2 compliance or clear "Read-Only" permissions are vital.
+• The "So What?" Factor: The engine must always link a technical change to a business result or a learning milestone.
+
+Authenticity and “So what” have been added to the prompt.
+
+System Requirements:
+1.Allow users sign up
+2.Allow users connect github and LinkedIn accounts
+3.

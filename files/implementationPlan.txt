@@ -1,0 +1,102 @@
+1. High-Level Architecture
+• Frontend: React Native mobile application
+• Backend: Node.js API (Express or NestJS recommended)
+• Database: PostgreSQL
+• Queue System: Redis + BullMQ
+• AI Engine: OpenAI API
+• Authentication: JWT + OAuth (GitHub and LinkedIn)
+2. Backend Module Structure
+• controllers – request handlers
+• services – business logic
+• models – database models
+• routes – API routes
+• jobs – background jobs
+• middlewares – authentication and validation
+• utils – shared utilities
+3. Core Database Tables
+• users – basic user information
+• oauth_accounts – GitHub and LinkedIn tokens
+• repositories – connected GitHub repositories
+• commits – stored commit data
+• commit_analysis – AI classification results
+• drafts – generated LinkedIn draft posts
+• posts – successfully published LinkedIn posts
+4. Authentication System
+• User signup and login using email/password
+• JWT tokens returned after login
+• React Native app stores JWT and attaches it to API requests
+5. GitHub Integration
+• User connects GitHub via OAuth
+• Backend exchanges authorization code for access token
+• Access token stored securely in oauth_accounts table
+• Repositories fetched via GitHub API
+6. Commit Ingestion
+• Scheduler runs periodically (daily or weekly)
+• Fetch repositories for each user
+• Fetch latest commits from GitHub
+• Store commits in database
+• Queue commits for AI analysis
+7. Diff Extraction
+• Fetch detailed commit data using GitHub commit endpoint
+• Extract patch/diff information
+• Store diff summary for AI processing
+8. Impact Filter (AI Classifier)
+• AI determines whether a commit is meaningful
+• Ignores typos, formatting changes, and dependency updates
+• Detects features, bug fixes, architecture improvements, and learning milestones
+9. Narrative Engine (Post Generator)
+• Convert meaningful commits into human-style LinkedIn posts
+• Limit post length to about 120 words
+• Focus on learning or impact of the change
+• Store generated drafts for user review
+10. Queue System
+• All heavy processing runs in background workers
+• Jobs include: FetchCommitsJob, AnalyzeCommitJob, GenerateDraftJob, PostToLinkedInJob
+• Prevents API performance issues
+11. Draft Review System
+• React Native app fetches generated drafts
+• User can edit, approve, or discard drafts
+• Approved drafts can later be posted to LinkedIn
+12. LinkedIn Posting
+• Uses LinkedIn UGC Posts API
+• Post content submitted after user approval
+• LinkedIn post ID stored for reference
+13. React Native App Screens
+• Login and Signup
+• Connect GitHub and LinkedIn
+• Dashboard (activity and drafts)
+• Draft review screen
+• Settings screen
+14. Scheduler System
+• node-cron or similar scheduler
+• Runs commit ingestion tasks periodically
+15. Security Considerations
+• Encrypt OAuth tokens
+• Use HTTPS for all API calls
+• Limit OAuth scopes
+• Store tokens securely
+16. MVP Scope
+• User authentication
+• GitHub connection
+• Commit ingestion
+• AI commit classification
+• Draft post generation
+• Draft review UI
+• Copy-to-clipboard instead of direct LinkedIn posting
+17. Development Timeline
+• Week 1: Backend setup, authentication, GitHub OAuth
+• Week 2: Commit ingestion and scheduler
+• Week 3: AI classification and narrative engine
+• Week 4: React Native interface and draft management
+18. Key Technical Risks
+• LinkedIn API access restrictions
+• AI generated text sounding robotic
+• Handling GitHub rate limits
+19. Scalability Strategy
+• Separate API and worker servers
+• Use Redis queues for AI tasks
+• Scale horizontally as users increase
+20. Competitive Advantage
+• Deep integration with Git commit diffs
+• Automated developer proof-of-work generation
+• Authentic AI-generated professional updates
