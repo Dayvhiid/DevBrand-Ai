@@ -19,12 +19,24 @@ const userSchema = new mongoose.Schema({
         sparse: true,
     },
     githubAccessToken: String,
+    githubRefreshToken: String,
+    githubProfile: {
+        username: String,
+        displayName: String,
+        profileUrl: String,
+        avatarUrl: String,
+    },
     linkedinId: {
         type: String,
         unique: true,
         sparse: true,
     },
     linkedinAccessToken: String,
+    linkedinRefreshToken: String,
+    linkedinProfile: {
+        displayName: String,
+        avatarUrl: String,
+    },
 }, {
     timestamps: true,
 });

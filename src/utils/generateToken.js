@@ -5,10 +5,11 @@ const generateToken = (res, userId) => {
         expiresIn: '30d',
     });
 
+    console.log(`[Auth] Setting JWT Cookie for user: ${userId}`);
     res.cookie('jwt', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 };

@@ -5,7 +5,7 @@ const router = express.Router();
 // Initiate GitHub OAuth
 router.get(
     '/',
-    passport.authenticate('github', { scope: ['user:email', 'repo'] }) // 'repo' scope needed for ingestion later
+    passport.authenticate('github', { scope: ['user:email', 'repo'], state: true }) // 'repo' scope needed for ingestion later
 );
 
 // GitHub OAuth Callback

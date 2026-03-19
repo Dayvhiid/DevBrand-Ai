@@ -41,8 +41,28 @@ passport.use(
                     return done(new Error('User not found'), null);
                 }
 
+                // Check if this GitHub ID is already linked to another user
+                const existingUser = await User.findOne({ githubId: profile.id });
+                if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                    // Option 3: Transfer the connection
+                    // Unlink from the old user
+                    existingUser.githubId = undefined;
+                    existingUser.githubAccessToken = undefined;
+                    existingUser.githubRefreshToken = undefined;
+                    existingUser.githubProfile = undefined;
+                    await existingUser.save();
+                    console.log(`[GitHub Transfer] Unlinked from user ${existingUser._id}`);
+                }
+
                 user.githubId = profile.id;
                 user.githubAccessToken = accessToken;
+                user.githubRefreshToken = refreshToken;
+                user.githubProfile = {
+                    username: profile.username,
+                    displayName: profile.displayName,
+                    profileUrl: profile.profileUrl,
+                    avatarUrl: profile.photos?.[0]?.value,
+                };
 
                 // Only save if something actually changed to avoid duplicate key errors
                 if (user.isModified()) {
@@ -81,9 +101,30 @@ passport.use(
                     return done(new Error('User not found'), null);
                 }
 
+                // Check if this LinkedIn ID is already linked to another user
+                const existingUser = await User.findOne({ linkedinId: profile.id });
+                if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                    // Option 3: Transfer the connection
+                    // Unlink from the old user
+                    existingUser.linkedinId = undefined;
+                    existingUser.linkedinAccessToken = undefined;
+                    existingUser.linkedinRefreshToken = undefined;
+                    existingUser.linkedinProfile = undefined;
+                    await existingUser.save();
+                    console.log(`[LinkedIn Transfer] Unlinked from user ${existingUser._id}`);
+                }
+
                 user.linkedinId = profile.id;
                 user.linkedinAccessToken = accessToken;
-                await user.save();
+                user.linkedinRefreshToken = refreshToken;
+                user.linkedinProfile = {
+                    displayName: profile.displayName,
+                    avatarUrl: profile.photos?.[0]?.value,
+                };
+
+                if (user.isModified()) {
+                    await user.save();
+                }
 
                 return done(null, user);
             } catch (err) {
