@@ -5,7 +5,11 @@ const router = express.Router();
 // Initiate LinkedIn OAuth
 router.get(
     '/',
-    passport.authenticate('linkedin', { state: true })
+    (req, res, next) => {
+        const token = req.query.token;
+        const stateStr = token ? token : true;
+        passport.authenticate('linkedin', { state: stateStr })(req, res, next);
+    }
 );
 
 // LinkedIn OAuth Callback

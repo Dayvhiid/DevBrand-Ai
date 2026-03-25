@@ -26,11 +26,10 @@ passport.use(
         },
         async (req, accessToken, refreshToken, profile, done) => {
             try {
-                // Here we assume the user is already logged in and we have their user info in req.user
-                // Or we extract the JWT from the cookie to find the user
-                let token = req.cookies?.jwt;
-                if (!token) {
-                    return done(new Error('No JWT token found, please login first'), null);
+                // We extract the JWT from the state param since cookies are no longer used
+                let token = req.query?.state;
+                if (!token || token === 'true') {
+                    return done(new Error('No JWT token found in state param, please login first'), null);
                 }
 
                 const jwt = require('jsonwebtoken');
@@ -88,9 +87,10 @@ passport.use(
         },
         async (req, accessToken, refreshToken, profile, done) => {
             try {
-                let token = req.cookies?.jwt;
-                if (!token) {
-                    return done(new Error('No JWT token found, please login first'), null);
+                // We extract the JWT from the state param since cookies are no longer used
+                let token = req.query?.state;
+                if (!token || token === 'true') {
+                    return done(new Error('No JWT token found in state param, please login first'), null);
                 }
 
                 const jwt = require('jsonwebtoken');

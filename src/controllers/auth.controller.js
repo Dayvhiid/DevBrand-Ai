@@ -20,10 +20,11 @@ const registerUser = async (req, res) => {
         });
 
         if (user) {
-            generateToken(res, user._id);
+            const token = generateToken(user._id);
             res.status(201).json({
                 _id: user._id,
                 email: user.email,
+                token,
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
@@ -43,10 +44,11 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
-            generateToken(res, user._id);
+            const token = generateToken(user._id);
             res.status(200).json({
                 _id: user._id,
                 email: user.email,
+                token,
                 githubConnected: !!user.githubId,
                 linkedinConnected: !!user.linkedinId,
             });
@@ -62,10 +64,6 @@ const loginUser = async (req, res) => {
 // @route   POST /api/v1/auth/logout
 // @access  Public
 const logoutUser = (req, res) => {
-    res.cookie('jwt', '', {
-        httpOnly: true,
-        expires: new Date(0),
-    });
     res.status(200).json({ message: 'User logged out' });
 };
 
