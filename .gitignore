@@ -112,5 +112,5 @@ dist
 # IDE files
 .vscode/
 .idea/
-
+Frontend/
 dummy-test/

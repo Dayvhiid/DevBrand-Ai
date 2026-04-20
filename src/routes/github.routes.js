@@ -34,6 +34,8 @@ router.get(
 );
 
 // Mobile Exchange Route (Expo/Mobile Flow)
-router.post('/exchange', protect, linkGithubAccount);
+// Note: Frontend calls this as POST /api/v1/auth/github
+router.post('/', linkGithubAccount);
+router.post('/exchange', linkGithubAccount); // Legacy support
 
 module.exports = router;

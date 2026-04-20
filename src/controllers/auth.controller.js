@@ -85,17 +85,19 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-// @desc    Link GitHub account (Mobile/Expo)
-// @route   POST /api/v1/auth/github/exchange
-// @access  Private
+// @desc    Link GitHub account or Login via GitHub (Mobile/Expo)
+// @route   POST /api/v1/auth/github
+// @access  Public (Identification handled via GitHub code)
 const linkGithubAccount = async (req, res) => {
-    const { code } = req.body;
+    const { code, redirect_uri } = req.body;
 
     if (!code) {
         return res.status(400).json({ message: 'No code provided' });
     }
 
     try {
+        console.log(`[GitHub Mobile] Exchanging code: ${code.substring(0, 5)}...`);
+        
         // 1. Exchange code for access token
         const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
             method: 'POST',
@@ -107,13 +109,14 @@ const linkGithubAccount = async (req, res) => {
                 client_id: process.env.GITHUB_CLIENT_ID,
                 client_secret: process.env.GITHUB_CLIENT_SECRET,
                 code,
-                redirect_uri: process.env.GITHUB_CALLBACK_URL,
+                redirect_uri: redirect_uri || process.env.GITHUB_CALLBACK_URL,
             }),
         });
 
         const tokenData = await tokenResponse.json();
 
         if (tokenData.error) {
+            console.error('[GitHub Exchange Error]', tokenData.error, tokenData.error_description);
             return res.status(400).json({ message: tokenData.error_description || 'GitHub exchange failed' });
         }
 
@@ -125,28 +128,60 @@ const linkGithubAccount = async (req, res) => {
         });
 
         const profile = await userResponse.json();
+        const githubId = profile.id.toString();
 
-        // 3. Find user and update
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        // 3. Find user
+        let user;
+        
+        // If we have a req.user (e.g. from a cookie or if the frontend DID send a token), use it
+        if (req.user) {
+            user = await User.findById(req.user._id);
+        } else {
+            // Otherwise, find user by GitHub ID
+            user = await User.findOne({ githubId });
+            
+            // If not found by GitHub ID, try finding by email (if available from GitHub)
+            if (!user && profile.email) {
+                user = await User.findOne({ email: profile.email.toLowerCase() });
+            }
         }
 
-        user.githubId = profile.id.toString();
+        if (!user) {
+            // For now, we require an existing user to link to. 
+            // Alternatively, we could create a new user here.
+            return res.status(404).json({ 
+                message: 'No associated user found. Please register or login with email first to link your GitHub account.',
+                githubProfile: profile 
+            });
+        }
+
+        // 4. Update user with GitHub info
+        user.githubId = githubId;
         user.githubAccessToken = tokenData.access_token;
         user.githubRefreshToken = tokenData.refresh_token;
         user.githubProfile = {
             username: profile.login,
-            displayName: profile.name,
+            displayName: profile.name || profile.login,
             profileUrl: profile.html_url,
             avatarUrl: profile.avatar_url,
         };
 
         await user.save();
 
+        // 5. Generate a fresh session token
+        const token = generateToken(user._id);
+
+        console.log(`[GitHub Mobile] Success for user: ${user.email}`);
+
         res.status(200).json({
             message: 'GitHub connected successfully',
-            githubConnected: true,
+            token,
+            user: {
+                _id: user._id,
+                email: user.email,
+                githubConnected: true,
+                linkedinConnected: !!user.linkedinId,
+            }
         });
     } catch (error) {
         console.error('[GitHub Exchange Error]', error);
