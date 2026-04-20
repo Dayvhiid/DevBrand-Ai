@@ -85,9 +85,79 @@ const getUserProfile = async (req, res) => {
     }
 };
 
+// @desc    Link GitHub account (Mobile/Expo)
+// @route   POST /api/v1/auth/github/exchange
+// @access  Private
+const linkGithubAccount = async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+        return res.status(400).json({ message: 'No code provided' });
+    }
+
+    try {
+        // 1. Exchange code for access token
+        const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: process.env.GITHUB_CLIENT_ID,
+                client_secret: process.env.GITHUB_CLIENT_SECRET,
+                code,
+                redirect_uri: process.env.GITHUB_CALLBACK_URL,
+            }),
+        });
+
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.error) {
+            return res.status(400).json({ message: tokenData.error_description || 'GitHub exchange failed' });
+        }
+
+        // 2. Fetch user profile from GitHub
+        const userResponse = await fetch('https://api.github.com/user', {
+            headers: {
+                Authorization: `Bearer ${tokenData.access_token}`,
+            },
+        });
+
+        const profile = await userResponse.json();
+
+        // 3. Find user and update
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.githubId = profile.id.toString();
+        user.githubAccessToken = tokenData.access_token;
+        user.githubRefreshToken = tokenData.refresh_token;
+        user.githubProfile = {
+            username: profile.login,
+            displayName: profile.name,
+            profileUrl: profile.html_url,
+            avatarUrl: profile.avatar_url,
+        };
+
+        await user.save();
+
+        res.status(200).json({
+            message: 'GitHub connected successfully',
+            githubConnected: true,
+        });
+    } catch (error) {
+        console.error('[GitHub Exchange Error]', error);
+        res.status(500).json({ message: 'Internal server error during GitHub exchange' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
     getUserProfile,
+    linkGithubAccount,
 };

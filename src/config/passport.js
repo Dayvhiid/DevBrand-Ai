@@ -21,8 +21,8 @@ passport.use(
         {
             clientID: process.env.GITHUB_CLIENT_ID,
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            callbackURL: process.env.GITHUB_CALLBACK_URL,
-            passReqToCallback: true, // Allows us to access the request object to get the JWT cookie
+            callbackURL: process.env.GITHUB_CALLBACK_URL || '/api/v1/auth/github/callback',
+            passReqToCallback: true,
         },
         async (req, accessToken, refreshToken, profile, done) => {
             try {

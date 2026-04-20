@@ -2,7 +2,10 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 
-// Initiate GitHub OAuth
+const { protect } = require('../middlewares/auth.middleware');
+const { linkGithubAccount } = require('../controllers/auth.controller');
+
+// Initiate GitHub OAuth (Web Flow)
 router.get(
     '/',
     (req, res, next) => {
@@ -12,7 +15,7 @@ router.get(
     }
 );
 
-// GitHub OAuth Callback
+// GitHub OAuth Callback (Web Flow)
 router.get(
     '/callback',
     (req, res, next) => {
@@ -29,5 +32,8 @@ router.get(
         })(req, res, next);
     }
 );
+
+// Mobile Exchange Route (Expo/Mobile Flow)
+router.post('/exchange', protect, linkGithubAccount);
 
 module.exports = router;

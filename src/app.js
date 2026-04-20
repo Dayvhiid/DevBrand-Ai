@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const app = express();
+app.set('trust proxy', true);
 const connectDB = require('./config/db');
 
 // Connect to database
