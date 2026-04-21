@@ -1,6 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const router = express.Router();
+const { linkLinkedinAccount } = require('../controllers/auth.controller');
 
 // Initiate LinkedIn OAuth
 router.get(
@@ -35,5 +36,7 @@ router.get(
         })(req, res, next);
     }
 );
+// Mobile Exchange Route (Expo/Mobile Flow)
+router.post('/', linkLinkedinAccount);
 
 module.exports = router;

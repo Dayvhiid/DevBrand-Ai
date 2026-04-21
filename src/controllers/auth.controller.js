@@ -199,10 +199,114 @@ const linkGithubAccount = async (req, res) => {
     }
 };
 
+// @desc    Link LinkedIn account or Login via LinkedIn (Mobile/Expo)
+// @route   POST /api/v1/auth/linkedin
+// @access  Public (Identification handled via LinkedIn code)
+const linkLinkedinAccount = async (req, res) => {
+    let { code, redirect_uri } = req.body;
+
+    if (redirect_uri && redirect_uri.includes('%')) {
+        try {
+            redirect_uri = decodeURIComponent(redirect_uri);
+        } catch (e) {
+            console.warn('[LinkedIn Mobile] Failed to decode redirect_uri, using as-is');
+        }
+    }
+
+    if (!code) {
+        return res.status(400).json({ message: 'No code provided' });
+    }
+
+    try {
+        console.log(`[LinkedIn Mobile] Exchanging code: ${code.substring(0, 5)}...`);
+        
+        // 1. Exchange code for access token
+        const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                code,
+                client_id: process.env.LINKEDIN_CLIENT_ID,
+                client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+                redirect_uri: redirect_uri || process.env.LINKEDIN_CALLBACK_URL,
+            }).toString(),
+        });
+
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.error) {
+            console.error('[LinkedIn Exchange Error]', tokenData.error, tokenData.error_description);
+            return res.status(400).json({ message: tokenData.error_description || 'LinkedIn exchange failed' });
+        }
+
+        // 2. Fetch user profile from LinkedIn (OpenID Connect)
+        const userResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+            headers: {
+                Authorization: `Bearer ${tokenData.access_token}`,
+            },
+        });
+
+        const profile = await userResponse.json();
+        const linkedinId = profile.sub; // OpenID Connect 'sub' is the unique ID
+
+        // 3. Find user
+        let user;
+        if (req.user) {
+            user = await User.findById(req.user._id);
+        } else {
+            user = await User.findOne({ linkedinId });
+            if (!user && profile.email) {
+                user = await User.findOne({ email: profile.email.toLowerCase() });
+            }
+        }
+
+        if (!user) {
+            return res.status(404).json({ 
+                message: 'No associated user found. Please register or login with email first to link your LinkedIn account.',
+                linkedinProfile: profile 
+            });
+        }
+
+        // 4. Update user with LinkedIn info
+        user.linkedinId = linkedinId;
+        user.linkedinAccessToken = tokenData.access_token;
+        user.linkedinRefreshToken = tokenData.refresh_token;
+        user.linkedinProfile = {
+            displayName: profile.name || `${profile.given_name} ${profile.family_name}`,
+            avatarUrl: profile.picture,
+        };
+
+        await user.save();
+
+        // 5. Generate a fresh session token
+        const token = generateToken(user._id);
+
+        console.log(`[LinkedIn Mobile] Success for user: ${user.email}`);
+
+        res.status(200).json({
+            message: 'LinkedIn connected successfully',
+            token,
+            user: {
+                _id: user._id,
+                email: user.email,
+                githubConnected: !!user.githubId,
+                linkedinConnected: true,
+            }
+        });
+    } catch (error) {
+        console.error('[LinkedIn Exchange Error]', error);
+        res.status(500).json({ message: 'Internal server error during LinkedIn exchange' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     logoutUser,
     getUserProfile,
     linkGithubAccount,
+    linkLinkedinAccount,
 };

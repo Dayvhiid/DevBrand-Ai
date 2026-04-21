@@ -13,20 +13,18 @@ Assuming the backend is running locally on port 5000 (standard for local dev):
 ---
 
 ## Important: Authentication Mechanism
-The API relies on **HTTP-only Cookies** to manage user sessions via JSON Web Tokens (JWT). This means the token is automatically stored and handled by the browser/client when responses are received.
+The API primarily uses **JSON Web Tokens (JWT)** for session management. When you register or log in, you will receive a `token` in the response body.
 
-To ensure cookies are passed correctly in React Native:
-- If using **Axios**, you must configure it globally or per-request to include credentials:
-  ```javascript
-  import axios from 'axios';
-  axios.defaults.withCredentials = true; // This is mandatory!
-  ```
-- If using **Fetch API**, carefully include the `credentials: 'include'` option in every request:
-  ```javascript
-  fetch('http://10.0.2.2:5000/api/v1/auth/profile', {
-    credentials: 'include' // This is mandatory!
-  })
-  ```
+For **Mobile (React Native)**:
+1. Store this token securely (e.g., using `expo-secure-store` or `AsyncStorage`).
+2. Include it in the `Authorization` header of subsequent requests:
+   ```javascript
+   headers: {
+     'Authorization': `Bearer ${token}`
+   }
+   ```
+
+The API also supports **HTTP-only Cookies** for web-based flows, but for mobile development, the Bearer token in the header is the preferred method.
 
 ---
 
@@ -47,7 +45,8 @@ This is the first step of the onboarding flow.
   ```json
   {
     "_id": "60d0fe4f5311236168a109ca",
-    "email": "developer@example.com"
+    "email": "developer@example.com",
+    "token": "eyJhbGciOiJIUzI1NiIsInR..."
   }
   ```
 
@@ -66,6 +65,7 @@ This is the first step of the onboarding flow.
   {
     "_id": "60d0fe4f5311236168a109ca",
     "email": "developer@example.com",
+    "token": "eyJhbGciOiJIUzI1NiIsInR...",
     "githubConnected": false,
     "linkedinConnected": false
   }
@@ -104,25 +104,39 @@ This is the first step of the onboarding flow.
 ---
 
 ## 2. OAuth Integrations (GitHub & LinkedIn)
-Because these are OAuth 2.0 flows, they cannot be handled solely via JSON API requests. They require opening a web browser (e.g., using `expo-web-browser` or `react-native-inappbrowser-reborn`) to allow the user to authenticate on the provider's official website.
+There are two ways to handle OAuth: the **Web Flow** (Browser-based) and the **Mobile Flow** (Code Exchange).
 
-### Concept for React Native:
-1. Ensure the user is already logged in (via email/password). The backend relies on the HTTP-only cookie to link the incoming OAuth tokens to the correct user.
-2. Open an in-app browser pointing to the integration initialization URLs.
-3. The backend handles the callback and redirect back to your app using deep linking (e.g., `devbrandai://dashboard`).
+### A. Mobile Flow (Recommended for React Native)
+This flow uses `expo-auth-session` or similar to get an authorization code on the device, which is then "exchanged" for a token on our backend.
 
-### Connect GitHub
-- **Endpoint**: `GET /auth/github`
-- **Description**: Point your in-app browser to this URL. It redirects the user to the GitHub authorization page. Once the user approves, GitHub redirects them back to our backend `/api/v1/auth/github/callback`, which in turn will redirect back to the Frontend (set up via Env vars currently).
+#### Connect GitHub (Mobile)
+- **Endpoint**: `POST /auth/github`
+- **Request Body**:
+  ```json
+  {
+    "code": "AUTH_CODE_FROM_EXPO",
+    "redirect_uri": "YOUR_EXPO_REDIRECT_URI"
+  }
+  ```
+- **Success Response**: Returns user data and a fresh session `token`.
 
-### Connect LinkedIn
-- **Endpoint**: `GET /auth/linkedin`
-- **Description**: Point your in-app browser to this URL. It redirects the user to the LinkedIn authorization page. Similar redirect flow applies upon completion.
+#### Connect LinkedIn (Mobile)
+- **Endpoint**: `POST /auth/linkedin`
+- **Request Body**:
+  ```json
+  {
+    "code": "AUTH_CODE_FROM_EXPO",
+    "redirect_uri": "YOUR_EXPO_REDIRECT_URI"
+  }
+  ```
+- **Success Response**: Returns user data and a fresh session `token`.
 
-### Handling Callbacks in Mobile
-Right now, the callback URLs on the backend (`/api/v1/auth/github/callback`) redirect to a web address (e.g., `http://localhost:3000/connect-linkedin`). 
-**For React Native, we will likely need to update the Environment Variables to point entirely to your App's deep link scheme:**
-```
-FRONTEND_URL="yourappscheme://"
-```
-So that once GitHub finishes linking, the user is seamlessly dropped back into your app flow.
+---
+
+### B. Web Flow (Legacy/Browser-based)
+These routes are used if you want to open an in-app browser and let the backend handle the entire redirect cycle.
+
+- **Connect GitHub**: `GET /auth/github?token=YOUR_JWT_TOKEN`
+- **Connect LinkedIn**: `GET /auth/linkedin?token=YOUR_JWT_TOKEN`
+
+The backend will handle the callback and redirect the user back to the `FRONTEND_URL` specified in the server environment variables.
