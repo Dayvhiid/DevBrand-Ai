@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const admin = require('../config/firebase');
 
 // @desc    Register a new user
 // @route   POST /api/v1/auth/register
@@ -302,6 +303,80 @@ const linkLinkedinAccount = async (req, res) => {
     }
 };
 
+// @desc    Sync Firebase user to local DB
+// @route   POST /api/v1/auth/firebase-sync
+// @access  Public
+const firebaseSync = async (req, res) => {
+    const { firebaseToken } = req.body;
+
+    if (!firebaseToken) {
+        return res.status(400).json({ message: 'No Firebase token provided' });
+    }
+
+    try {
+        // 1. Verify the Firebase ID token
+        const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+        const { email, uid, name, picture, firebase } = decodedToken;
+        const providerData = firebase.identities;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Firebase token does not contain an email address' });
+        }
+
+        // 2. Find or create user
+        let user = await User.findOne({ email: email.toLowerCase() });
+
+        if (!user) {
+            user = new User({
+                email: email.toLowerCase(),
+                // Password is not needed for Firebase-only users, but could be set to a random string if required by schema
+            });
+        }
+
+        // 3. Link social IDs based on Firebase provider info
+        // Note: Firebase provider IDs for GitHub/LinkedIn usually look like 'github.com' and 'linkedin.com'
+        if (providerData['github.com']) {
+            user.githubId = providerData['github.com'][0];
+            if (!user.githubProfile.displayName) {
+                user.githubProfile = {
+                    displayName: name || email.split('@')[0],
+                    avatarUrl: picture,
+                };
+            }
+        }
+
+        if (providerData['linkedin.com']) {
+            user.linkedinId = providerData['linkedin.com'][0];
+            if (!user.linkedinProfile.displayName) {
+                user.linkedinProfile = {
+                    displayName: name || email.split('@')[0],
+                    avatarUrl: picture,
+                };
+            }
+        }
+
+        await user.save();
+
+        // 4. Generate local JWT session
+        const token = generateToken(user._id);
+
+        res.status(200).json({
+            message: 'User synced successfully',
+            token,
+            user: {
+                _id: user._id,
+                email: user.email,
+                githubConnected: !!user.githubId,
+                linkedinConnected: !!user.linkedinId,
+            }
+        });
+
+    } catch (error) {
+        console.error('[Firebase Sync Error]', error);
+        res.status(401).json({ message: 'Invalid or expired Firebase token' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -309,4 +384,5 @@ module.exports = {
     getUserProfile,
     linkGithubAccount,
     linkLinkedinAccount,
+    firebaseSync,
 };
