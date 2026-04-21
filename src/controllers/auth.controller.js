@@ -89,7 +89,17 @@ const getUserProfile = async (req, res) => {
 // @route   POST /api/v1/auth/github
 // @access  Public (Identification handled via GitHub code)
 const linkGithubAccount = async (req, res) => {
-    const { code, redirect_uri } = req.body;
+    let { code, redirect_uri } = req.body;
+
+    // Defensive check: Ensure redirect_uri is decoded if it was sent pre-encoded
+    // This aligns with the advice that OAuth libraries/endpoints expect raw strings.
+    if (redirect_uri && redirect_uri.includes('%')) {
+        try {
+            redirect_uri = decodeURIComponent(redirect_uri);
+        } catch (e) {
+            console.warn('[GitHub Mobile] Failed to decode redirect_uri, using as-is');
+        }
+    }
 
     if (!code) {
         return res.status(400).json({ message: 'No code provided' });

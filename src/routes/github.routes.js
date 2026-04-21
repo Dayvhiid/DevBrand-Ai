@@ -20,15 +20,21 @@ router.get(
     '/callback',
     (req, res, next) => {
         passport.authenticate('github', { session: false }, (err, user, info) => {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            const target = new URL(frontendUrl);
+
             if (err) {
                 console.error('[GitHub OAuth Error]', err.message);
-                return res.redirect(`${process.env.FRONTEND_URL}/?error=${encodeURIComponent(err.message)}`);
+                target.searchParams.set('error', err.message);
+                return res.redirect(target.toString());
             }
             if (!user) {
-                return res.redirect(`${process.env.FRONTEND_URL}/?error=github_auth_failed`);
+                target.searchParams.set('error', 'github_auth_failed');
+                return res.redirect(target.toString());
             }
             // Successful authentication, redirect to frontend dashboard
-            return res.redirect(`${process.env.FRONTEND_URL}/?success=github_connected`);
+            target.searchParams.set('success', 'github_connected');
+            return res.redirect(target.toString());
         })(req, res, next);
     }
 );

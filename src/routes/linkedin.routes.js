@@ -17,15 +17,21 @@ router.get(
     '/callback',
     (req, res, next) => {
         passport.authenticate('linkedin', { session: false }, (err, user, info) => {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            const target = new URL(frontendUrl);
+
             if (err) {
                 console.error('[LinkedIn OAuth Error]', err.message);
-                return res.redirect(`${process.env.FRONTEND_URL}/?error=${encodeURIComponent(err.message)}`);
+                target.searchParams.set('error', err.message);
+                return res.redirect(target.toString());
             }
             if (!user) {
-                return res.redirect(`${process.env.FRONTEND_URL}/?error=linkedin_auth_failed`);
+                target.searchParams.set('error', 'linkedin_auth_failed');
+                return res.redirect(target.toString());
             }
             // Successful authentication, onboarding complete
-            return res.redirect(`${process.env.FRONTEND_URL}/?success=linkedin_connected`);
+            target.searchParams.set('success', 'linkedin_connected');
+            return res.redirect(target.toString());
         })(req, res, next);
     }
 );
